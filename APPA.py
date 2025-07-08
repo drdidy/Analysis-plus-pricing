@@ -21,8 +21,8 @@ def norm_cdf(x):
     return 0.5 * (1 + math.erf(x / math.sqrt(2)))
 
 def black_scholes_call(S, K, T, r, sigma):
-    if T <= 0:
-        return max(0.0, S - K)
+    if T <= 0 or K <= 0 or S <= 0:
+        return 0.0
     d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
     d2 = d1 - sigma * math.sqrt(T)
     return S * norm_cdf(d1) - K * math.exp(-r * T) * norm_cdf(d2)
@@ -70,10 +70,11 @@ def generate_spx(price, slope, anchor_dt, fd, r, vol):
 
         for d in expiries:
             T = d / 252
-            row[f"Entry Call {d}d"] = round(
-                black_scholes_call(entry, K_e, T, r, vol),
-                2
-            )
+            if K_e > 0 and entry > 0:
+                c = black_scholes_call(entry, K_e, T, r, vol)
+                row[f"Entry Call {d}d"] = round(c, 2)
+            else:
+                row[f"Entry Call {d}d"] = None
 
         rows.append(row)
     return pd.DataFrame(rows)
@@ -99,10 +100,11 @@ def generate_stock(price, slope, anchor_dt, fd, r, vol, invert=False):
 
         for d in expiries:
             T = d / 252
-            row[f"Entry Call {d}d"] = round(
-                black_scholes_call(entry, K_e, T, r, vol),
-                2
-            )
+            if K_e > 0 and entry > 0:
+                c = black_scholes_call(entry, K_e, T, r, vol)
+                row[f"Entry Call {d}d"] = round(c, 2)
+            else:
+                row[f"Entry Call {d}d"] = None
 
         rows.append(row)
     return pd.DataFrame(rows)
@@ -128,29 +130,29 @@ with st.sidebar:
 
     st.subheader("Slopes")
     for k in SLOPES:
-        SLOPES[k] = st.number_input(k.replace("_"," "), SLOPES[k], format="%.4f")
+        SLOPES[k] = st.number_input(k.replace("_", " "), SLOPES[k], format="%.4f")
 
     st.divider()
     r = st.number_input("Risk-free Rate", value=0.01, format="%.3f")
 
     st.subheader("Volatilities (σ)")
     VOL = {}
-    for sym in ["SPX","TSLA","NVDA","AAPL","AMZN","GOOGL"]:
-        VOL[sym] = st.slider(f"{sym}", 0.05, 1.0, 0.2, step=0.01)
+    for sym in ["SPX", "TSLA", "NVDA", "AAPL", "AMZN", "GOOGL"]:
+        VOL[sym] = st.slider(sym, 0.05, 1.0, 0.2, step=0.01)
 
 # --- TABS ---
-tabs = st.tabs(["🧭 SPX","🚗 TSLA","🧠 NVDA","🍎 AAPL","📦 AMZN","🔍 GOOGL"])
+tabs = st.tabs(["🧭 SPX", "🚗 TSLA", "🧠 NVDA", "🍎 AAPL", "📦 AMZN", "🔍 GOOGL"])
 
 # --- SPX TAB ---
 with tabs[0]:
     st.subheader("🧭 SPX Forecast")
     c1, c2, c3 = st.columns(3)
-    hp = c1.number_input("🔼 High Price",  min_value=0.0, value=6185.8, format="%.2f", key="spx_hp")
-    ht = c1.time_input("🕒 High Time",      datetime(2025,1,1,11,30).time(), step=1800, key="spx_ht")
-    cp = c2.number_input("⏹️ Close Price", min_value=0.0, value=6170.2, format="%.2f", key="spx_cp")
-    ct = c2.time_input("🕒 Close Time",     datetime(2025,1,1,15,0).time(),  step=1800, key="spx_ct")
-    lp = c3.number_input("🔽 Low Price",    min_value=0.0, value=6130.4, format="%.2f", key="spx_lp")
-    lt = c3.time_input("🕒 Low Time",       datetime(2025,1,1,13,30).time(), step=1800, key="spx_lt")
+    hp = c1.number_input("🔼 High Price", min_value=0.01, value=6185.8, format="%.2f", key="spx_hp")
+    ht = c1.time_input("🕒 High Time", datetime(2025,1,1,11,30).time(), step=1800, key="spx_ht")
+    cp = c2.number_input("⏹️ Close Price", min_value=0.01, value=6170.2, format="%.2f", key="spx_cp")
+    ct = c2.time_input("🕒 Close Time", datetime(2025,1,1,15,0).time(), step=1800, key="spx_ct")
+    lp = c3.number_input("🔽 Low Price", min_value=0.01, value=6130.4, format="%.2f", key="spx_lp")
+    lt = c3.time_input("🕒 Low Time", datetime(2025,1,1,13,30).time(), step=1800, key="spx_lt")
 
     if st.button("🔮 Generate SPX"):
         ah = datetime.combine(forecast_date - timedelta(days=1), ht)
@@ -159,7 +161,7 @@ with tabs[0]:
 
         dfh = generate_spx(hp, SLOPES["SPX_HIGH"], ah, forecast_date, r, VOL["SPX"])
         dfc = generate_spx(cp, SLOPES["SPX_CLOSE"], ac, forecast_date, r, VOL["SPX"])
-        dfl = generate_spx(lp, SLOPES["SPX_LOW"],   al, forecast_date, r, VOL["SPX"])
+        dfl = generate_spx(lp, SLOPES["SPX_LOW"], al, forecast_date, r, VOL["SPX"])
 
         st.markdown("### 🔼 High Anchor Table")
         st.dataframe(dfh, use_container_width=True)
@@ -174,17 +176,17 @@ for i, sym in enumerate(["TSLA","NVDA","AAPL","AMZN","GOOGL"], start=1):
     with tabs[i]:
         st.subheader(f"{icons[sym]} {sym} Forecast")
         col1, col2 = st.columns(2)
-        lp = col1.number_input("🔽 Prev-Day Low Price",  min_value=0.0, value=0.0, format="%.2f", key=f"{sym}_lp")
-        lt = col1.time_input("🕒 Prev-Day Low Time",     datetime(2025,1,1,8,30).time(), step=1800, key=f"{sym}_lt")
-        hp = col2.number_input("🔼 Prev-Day High Price", min_value=0.0, value=0.0, format="%.2f", key=f"{sym}_hp")
-        ht = col2.time_input("🕒 Prev-Day High Time",    datetime(2025,1,1,8,30).time(), step=1800, key=f"{sym}_ht")
+        lp = col1.number_input("🔽 Prev-Day Low Price", min_value=0.01, value=100.0, format="%.2f", key=f"{sym}_lp")
+        lt = col1.time_input("🕒 Prev-Day Low Time", datetime(2025,1,1,8,30).time(), step=1800, key=f"{sym}_lt")
+        hp = col2.number_input("🔼 Prev-Day High Price", min_value=0.01, value=110.0, format="%.2f", key=f"{sym}_hp")
+        ht = col2.time_input("🕒 Prev-Day High Time", datetime(2025,1,1,8,30).time(), step=1800, key=f"{sym}_ht")
 
         if st.button(f"🔮 Generate {sym}"):
             a_low  = datetime.combine(forecast_date - timedelta(days=1), lt)
             a_high = datetime.combine(forecast_date - timedelta(days=1), ht)
 
-            dflow  = generate_stock(lp,   SLOPES[sym], a_low,  forecast_date, r, VOL[sym], invert=True)
-            dfhigh = generate_stock(hp,   SLOPES[sym], a_high, forecast_date, r, VOL[sym], invert=False)
+            dflow  = generate_stock(lp, SLOPES[sym], a_low, forecast_date, r, VOL[sym], invert=True)
+            dfhigh = generate_stock(hp, SLOPES[sym], a_high, forecast_date, r, VOL[sym], invert=False)
 
             st.markdown("### 🔻 Low Anchor Table")
             st.dataframe(dflow, use_container_width=True)
