@@ -1,7 +1,6 @@
 import streamlit as st
 from datetime import datetime, time, timedelta
 import pandas as pd
-import numpy as np
 import math
 
 # --- SLOPE SETTINGS ---
@@ -48,18 +47,20 @@ def calculate_stock_blocks(a, t):
     bn = 0 if t <= next_open else int((min(t,next_close) - next_open).total_seconds() // 1800)
     return bp + bn
 
-# --- FORECAST TABLE GENERATORS (only Entry Call columns, with 0d treated as 1d) ---
+# --- FORECAST TABLE GENERATORS (Entry Call only, dynamic 0 DTE) ---
 def generate_spx(price, slope, anchor_dt, fd, r, vol):
     expiries = [0, 3, 7, 30]
+    trading_minutes = 6.5 * 60  # 390
     rows = []
     for slot in generate_time_blocks():
         h, m = map(int, slot.split(":"))
-        tgt   = datetime.combine(fd, time(h, m))
-        b     = calculate_spx_blocks(anchor_dt, tgt)
+        slot_dt    = datetime.combine(fd, time(h, m))
+        expiration = datetime.combine(fd, time(15, 0))
+        # blocks for underlying
+        b     = calculate_spx_blocks(anchor_dt, slot_dt)
         entry = price + slope * b
         exit_ = price - slope * b
-
-        K_e = int(round(entry / 10.0)) * 10
+        K_e   = int(round(entry / 10.0)) * 10
 
         row = {
             "Time": slot,
@@ -69,28 +70,32 @@ def generate_spx(price, slope, anchor_dt, fd, r, vol):
         }
 
         for d in expiries:
-            # treat 0d as 1 trading day
-            T = (d if d > 0 else 1) / 252
-            if K_e > 0 and entry > 0:
-                c = black_scholes_call(entry, K_e, T, r, vol)
-                row[f"Entry Call {d}d"] = round(c, 2)
+            if d == 0:
+                # fraction of trading day remaining
+                rem_min = max((expiration - slot_dt).total_seconds() / 60, 0)
+                T = rem_min / trading_minutes / 252
             else:
-                row[f"Entry Call {d}d"] = None
+                T = d / 252
+
+            row[f"Entry Call {d}d"] = round(
+                black_scholes_call(entry, K_e, T, r, vol), 2
+            )
 
         rows.append(row)
     return pd.DataFrame(rows)
 
 def generate_stock(price, slope, anchor_dt, fd, r, vol, invert=False):
     expiries = [0, 3, 7, 30]
+    trading_minutes = 6.5 * 60  # 390
     rows = []
     for slot in generate_time_blocks():
         h, m = map(int, slot.split(":"))
-        tgt    = datetime.combine(fd, time(h, m))
-        b      = calculate_stock_blocks(anchor_dt, tgt)
-        entry  = (price - slope * b) if invert else (price + slope * b)
-        exit_  = (price + slope * b) if invert else (price - slope * b)
-
-        K_e = int(round(entry / 10.0)) * 10
+        slot_dt    = datetime.combine(fd, time(h, m))
+        expiration = datetime.combine(fd, time(15, 0))
+        b     = calculate_stock_blocks(anchor_dt, slot_dt)
+        entry = (price - slope * b) if invert else (price + slope * b)
+        exit_ = (price + slope * b) if invert else (price - slope * b)
+        K_e   = int(round(entry / 10.0)) * 10
 
         row = {
             "Time": slot,
@@ -100,13 +105,15 @@ def generate_stock(price, slope, anchor_dt, fd, r, vol, invert=False):
         }
 
         for d in expiries:
-            # treat 0d as 1 trading day
-            T = (d if d > 0 else 1) / 252
-            if K_e > 0 and entry > 0:
-                c = black_scholes_call(entry, K_e, T, r, vol)
-                row[f"Entry Call {d}d"] = round(c, 2)
+            if d == 0:
+                rem_min = max((expiration - slot_dt).total_seconds() / 60, 0)
+                T = rem_min / trading_minutes / 252
             else:
-                row[f"Entry Call {d}d"] = None
+                T = d / 252
+
+            row[f"Entry Call {d}d"] = round(
+                black_scholes_call(entry, K_e, T, r, vol), 2
+            )
 
         rows.append(row)
     return pd.DataFrame(rows)
@@ -136,7 +143,6 @@ with st.sidebar:
 
     st.divider()
     r = st.number_input("Risk-free Rate", value=0.01, format="%.3f")
-
     st.subheader("Volatilities (σ)")
     VOL = {}
     for sym in ["SPX", "TSLA", "NVDA", "AAPL", "AMZN", "GOOGL"]:
