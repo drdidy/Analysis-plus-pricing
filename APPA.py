@@ -579,7 +579,6 @@ st.markdown(f"""
     <p class="hero-subtitle">Advanced Financial Forecasting & Analysis Tool v{VERSION}</p>
 </div>
 """, unsafe_allow_html=True)
-
 # ── ENHANCED SIDEBAR ─────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("### ⚙️ Configuration")
@@ -738,16 +737,14 @@ with tabs[0]:
             # Generate anchor trends with enhanced visualization
             ah, ac, al = [datetime.combine(fcast_date - timedelta(days=1), t) for t in (ht, ct, lt)]
             
-            for lbl, p, key, anc, color in [
-                ("High", hp, "SPX_HIGH", ah, "#10b981"),
-                ("Close", cp, "SPX_CLOSE", ac, "#3b82f6"),
-                ("Low", lp, "SPX_LOW", al, "#ef4444")
+            for lbl, p, key, anc in [
+                ("High", hp, "SPX_HIGH", ah),
+                ("Close", cp, "SPX_CLOSE", ac),
+                ("Low", lp, "SPX_LOW", al)
             ]:
                 st.markdown(f"### {lbl} Anchor Trend Analysis")
                 df = tbl(p, st.session_state.slopes[key], anc, fcast_date, SPX_SLOTS, fan=True)
                 st.dataframe(
-                    create_enhanced_
-st.dataframe(
                     create_enhanced_dataframe(df, f"{lbl} Anchor Trend"),
                     use_container_width=True
                 )
@@ -926,7 +923,6 @@ def enhanced_stock_tab(idx, tic):
 # Generate all stock tabs
 for i, ticker in enumerate(list(ICONS)[1:], 1):
     enhanced_stock_tab(i, ticker)
-
 # ── ENHANCED FOOTER ──────────────────────────────────────────────────────────
 st.markdown(f"""
 <div class="enhanced-footer">
