@@ -1,14 +1,16 @@
-# Dr Didy SPX Forecast – v2.0.0 Enhanced
+# Dr Didy SPX Forecast - v2.0.0 Enhanced
 # -----------------------------------------------------------------
 # Enhanced visual design with modern UI components and animations
 # All original functionality preserved with improved aesthetics
 
-import json, base64, streamlit as st
+import json
+import base64
+import streamlit as st
 from datetime import datetime, date, time, timedelta
 from copy import deepcopy
 import pandas as pd
 
-# ── CONSTANTS ────────────────────────────────────────────────────────────────
+# CONSTANTS
 PAGE_TITLE, PAGE_ICON = "DRSPX Forecast", "📈"
 VERSION = "2.0.0"
 
