@@ -523,13 +523,17 @@ def tbl(price, slope, anchor, fd, slots, spx=True, fan=False):
         rows.append({"Time": s, "Projected": round(price + slope * b, 2)} if not fan else
                     {"Time": s, "Entry": round(price + slope * b, 2), "Exit": round(price - slope * b, 2)})
     return pd.DataFrame(rows)
-
-# ── ENHANCED HEADER ──────────────────────────────────────────────────────────
-st.markdown(f"""
-<div class="hero-banner">
-    <h1 class="hero-title">{PAGE_ICON} {PAGE_TITLE}</h1>
-    <p class="hero-subtitle">Advanced Financial Forecasting & Analysis Tool v{VERSION}</p>
-</div>
+# ── ENHANCED HEADER ─────────────────────────────────────────────────────────
+st.markdown("""
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Fix the hero banner icon display
+    const heroTitle = document.querySelector('.hero-title');
+    if (heroTitle && !heroTitle.textContent.includes('📈')) {
+        heroTitle.textContent = '📈 ' + heroTitle.textContent.replace('📈', '').trim();
+    }
+});
+</script>
 """, unsafe_allow_html=True)
 # ── ENHANCED SIDEBAR ─────────────────────────────────────────────────────────
 with st.sidebar:
@@ -923,16 +927,151 @@ if st.sidebar.button("⌨️ Shortcuts"):
     - `Enter` - Generate forecast
     """)
 
-# ── THEME PERSISTENCE ───────────────────────────────────────────────────────
+# ── FIXED LIGHT THEME ───────────────────────────────────────────────────────
 if st.session_state.theme == "Light":
     st.markdown("""
     <style>
+    /* Light theme variables */
     :root {
-        --dark-bg: #ffffff;
-        --card-bg: #f8fafc;
-        --text-primary: #1a202c;
-        --text-secondary: #4a5568;
-        --border-color: #e2e8f0;
+        --dark-bg: #ffffff !important;
+        --card-bg: #f8fafc !important;
+        --text-primary: #1a202c !important;
+        --text-secondary: #4a5568 !important;
+        --border-color: #e2e8f0 !important;
+    }
+    
+    /* Fix main app background */
+    .stApp {
+        background: #ffffff !important;
+        color: #1a202c !important;
+    }
+    
+    /* Fix all text elements */
+    .stMarkdown, .stText, .element-container, .stSelectbox label, 
+    .stNumberInput label, .stTimeInput label, .stTextInput label, 
+    .stSlider label, .stRadio label, .stCheckbox label,
+    .stSelectbox div, .stNumberInput div, .stTimeInput div,
+    .stTextInput div, p, span, div {
+        color: #1a202c !important;
+    }
+    
+    /* Fix markdown text specifically */
+    .stMarkdown p, .stMarkdown div, .stMarkdown span,
+    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3,
+    .stMarkdown h4, .stMarkdown h5, .stMarkdown h6 {
+        color: #1a202c !important;
+    }
+    
+    /* Fix sidebar text */
+    .css-1d391kg, .css-1d391kg * {
+        background: #f8fafc !important;
+        color: #1a202c !important;
+    }
+    
+    /* Fix sidebar labels and text */
+    .css-1d391kg .stMarkdown, .css-1d391kg label,
+    .css-1d391kg p, .css-1d391kg span, .css-1d391kg div {
+        color: #1a202c !important;
+    }
+    
+    /* Fix input fields */
+    .stNumberInput input, .stTimeInput input, .stTextInput input,
+    .stSelectbox select {
+        background: #ffffff !important;
+        color: #1a202c !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+    
+    /* Fix metric cards in light theme */
+    .metric-card {
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        color: #1a202c !important;
+    }
+    
+    .metric-label {
+        color: #4a5568 !important;
+    }
+    
+    .metric-value {
+        color: #667eea !important;
+        background: none !important;
+        -webkit-text-fill-color: #667eea !important;
+    }
+    
+    /* Fix hero banner text visibility */
+    .hero-title, .hero-subtitle {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+    }
+    
+    /* Fix highlight sections */
+    .highlight-section {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05)) !important;
+        border: 1px solid rgba(102, 126, 234, 0.2) !important;
+        color: #1a202c !important;
+    }
+    
+    .highlight-section * {
+        color: #1a202c !important;
+    }
+    
+    /* Fix dataframe styling */
+    .dataframe {
+        background: #ffffff !important;
+        color: #1a202c !important;
+    }
+    
+    /* Fix info boxes */
+    .stInfo {
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        color: #1a202c !important;
+    }
+    
+    .stInfo * {
+        color: #1a202c !important;
+    }
+    
+    /* Fix success/warning/error messages */
+    .stSuccess, .stWarning, .stError {
+        color: #1a202c !important;
+    }
+    
+    .stSuccess *, .stWarning *, .stError * {
+        color: #1a202c !important;
+    }
+    
+    /* Fix tab text */
+    .stTabs [data-baseweb="tab"] {
+        color: #1a202c !important;
+    }
+    
+    /* Fix expandable sections */
+    .streamlit-expanderHeader {
+        background: #f8fafc !important;
+        color: #1a202c !important;
+    }
+    
+    .streamlit-expanderHeader * {
+        color: #1a202c !important;
+    }
+    
+    /* Fix code blocks */
+    .stCode {
+        background: #f8fafc !important;
+        color: #1a202c !important;
+    }
+    
+    /* Ensure all text is visible */
+    * {
+        color: #1a202c !important;
+    }
+    
+    /* Exception for elements that should stay white text */
+    .hero-banner *, .stButton button *, 
+    .metric-icon, .status-indicator {
+        color: #ffffff !important;
     }
     </style>
     """, unsafe_allow_html=True)
