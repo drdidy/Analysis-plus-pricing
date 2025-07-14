@@ -7,8 +7,6 @@ import json, base64, streamlit as st
 from datetime import datetime, date, time, timedelta
 from copy import deepcopy
 import pandas as pd
-import plotly.graph_objects as go
-import plotly.express as px
 
 # ── CONSTANTS ────────────────────────────────────────────────────────────────
 PAGE_TITLE, PAGE_ICON = "DRSPX Forecast", "📈"
@@ -41,8 +39,7 @@ if "theme" not in st.session_state:
         presets={},
         contract_anchor=None,
         contract_slope=None,
-        contract_price=None,
-        show_charts=True
+        contract_price=None
     )
 
 if st.query_params.get("s"):
@@ -408,15 +405,6 @@ header {visibility: hidden;}
     }
 }
 
-/* Data visualization enhancements */
-.plotly-chart {
-    background: var(--card-bg) !important;
-    border-radius: var(--border-radius) !important;
-    border: 1px solid var(--border-color) !important;
-    padding: 1rem !important;
-    margin: 1rem 0 !important;
-}
-
 /* Loading animation */
 .loading-spinner {
     display: inline-block;
@@ -471,53 +459,8 @@ def create_metric_card(type_class, icon, label, value, trend=None):
     </div>
     """
 
-def create_enhanced_dataframe(df, title="", chart_type="line"):
-    """Create enhanced dataframe with optional chart visualization"""
-    if st.session_state.get('show_charts', True) and len(df) > 0:
-        # Create chart based on data structure
-        if 'Projected' in df.columns:
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=df['Time'],
-                y=df['Projected'],
-                mode='lines+markers',
-                name='Projected',
-                line=dict(color='#667eea', width=3),
-                marker=dict(size=8, color='#667eea')
-            ))
-        elif 'Entry' in df.columns and 'Exit' in df.columns:
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=df['Time'],
-                y=df['Entry'],
-                mode='lines+markers',
-                name='Entry',
-                line=dict(color='#10b981', width=3),
-                marker=dict(size=8, color='#10b981')
-            ))
-            fig.add_trace(go.Scatter(
-                x=df['Time'],
-                y=df['Exit'],
-                mode='lines+markers',
-                name='Exit',
-                line=dict(color='#ef4444', width=3),
-                marker=dict(size=8, color='#ef4444')
-            ))
-        
-        if 'fig' in locals():
-            fig.update_layout(
-                title=title,
-                template='plotly_dark',
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='white'),
-                xaxis=dict(gridcolor='rgba(255,255,255,0.1)'),
-                yaxis=dict(gridcolor='rgba(255,255,255,0.1)'),
-                height=400,
-                margin=dict(l=0, r=0, t=40, b=0)
-            )
-            st.plotly_chart(fig, use_container_width=True)
-    
+def create_enhanced_dataframe(df, title=""):
+    """Create enhanced dataframe without plotly dependency"""
     # Style the dataframe
     styled_df = df.style.format({
         col: "{:.2f}" for col in df.columns if col not in ['Time']
@@ -606,13 +549,6 @@ with st.sidebar:
     
     # Display status
     st.markdown(f'<div class="status-indicator status-active"></div>**Status:** Active - {day_grp}', unsafe_allow_html=True)
-    
-    # Enhanced chart toggle
-    st.session_state.show_charts = st.checkbox(
-        "📊 Show Interactive Charts", 
-        value=st.session_state.get('show_charts', True),
-        help="Toggle interactive chart visualizations"
-    )
     
     # Enhanced slopes section
     with st.expander("📈 Slope Parameters", expanded=False):
