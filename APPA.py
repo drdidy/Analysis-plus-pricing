@@ -1,5 +1,4 @@
 # Dr Didy SPX Forecast - v2.0.0 Enhanced
-# -----------------------------------------------------------------
 # Enhanced visual design with modern UI components and animations
 # All original functionality preserved with improved aesthetics
 
@@ -7,8 +6,16 @@ import json
 import base64
 import streamlit as st
 from datetime import datetime, date, time, timedelta
-from copy import deepcopy
 import pandas as pd
+
+# Manual deepcopy function
+def deepcopy(obj):
+    if isinstance(obj, dict):
+        return {k: deepcopy(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [deepcopy(item) for item in obj]
+    else:
+        return obj
 
 # CONSTANTS
 PAGE_TITLE, PAGE_ICON = "DRSPX Forecast", "📈"
