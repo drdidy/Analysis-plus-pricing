@@ -5050,18 +5050,19 @@ def create_advanced_sidebar():
     """Create professional sidebar"""
     with st.sidebar:
         st.markdown("""
-        <div style="
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            padding: 1.5rem;
-            border-radius: 12px;
-            text-align: center;
-            margin-bottom: 2rem;
-            color: white;
-        ">
-            <h2 style="margin: 0; font-size: 1.3rem; font-weight: 700;">⚙️ Control Center</h2>
-            <p style="margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 0.9rem;">Professional Configuration</p>
-        </div>
-        """, unsafe_allow_html=True)
+      st.markdown("""
+<div style="
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    padding: 1.5rem;
+    border-radius: 12px;
+    text-align: center;
+    margin-bottom: 2rem;
+    color: white;
+">
+    <h2 style="margin: 0; font-size: 1.3rem; font-weight: 700;">⚙️ Control Center</h2>
+    <p style="margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 0.9rem;">Professional Configuration</p>
+</div>
+""", unsafe_allow_html=True)
         
         # Theme selector
         st.markdown("### 🎨 Theme")
