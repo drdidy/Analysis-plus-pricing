@@ -4148,7 +4148,12 @@ def create_stock_history_page(symbol):
 
 def create_individual_stock_tab(tab_index, symbol):
     """Create individual stock tab with multi-page system"""
-    with tabs[tab_index]:
+    # Create tabs if they don't exist
+    if 'tabs' not in st.session_state:
+        tab_labels = [f"{INSTRUMENTS[symbol]['icon']} {symbol}" for symbol in INSTRUMENTS.keys()]
+        st.session_state.tabs = st.tabs(tab_labels)
+    
+    with st.session_state.tabs[tab_index]:
         metadata = INSTRUMENTS[symbol]
         
         # Store current instrument
