@@ -5030,39 +5030,14 @@ def create_export_tab():
         **📊 CSV Exports:**
         -
 # ═══════════════════════════════════════════════════════════════════════════════
-# PART 10 - FINAL INTEGRATION (CLEAN VERSION)
+# PART 10 - BULLETPROOF FINAL INTEGRATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def create_main_navigation():
-    """Create the main navigation system"""
-    all_instruments = list(INSTRUMENTS.keys())
-    special_tabs = ["📊 Analytics", "📤 Export"]
-    
-    tab_labels = []
-    for instrument in all_instruments:
-        metadata = INSTRUMENTS[instrument]
-        tab_labels.append(f"{metadata['icon']} {instrument}")
-    
-    tab_labels.extend(special_tabs)
-    return st.tabs(tab_labels)
-
-def create_advanced_sidebar():
-    """Create professional sidebar"""
+def create_sidebar():
+    """Create simple sidebar"""
     with st.sidebar:
-        st.markdown("""
-      st.markdown("""
-<div style="
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    padding: 1.5rem;
-    border-radius: 12px;
-    text-align: center;
-    margin-bottom: 2rem;
-    color: white;
-">
-    <h2 style="margin: 0; font-size: 1.3rem; font-weight: 700;">⚙️ Control Center</h2>
-    <p style="margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 0.9rem;">Professional Configuration</p>
-</div>
-""", unsafe_allow_html=True)
+        st.markdown("## ⚙️ Control Center")
+        st.markdown("*Professional Configuration*")
         
         # Theme selector
         st.markdown("### 🎨 Theme")
@@ -5080,134 +5055,106 @@ def create_advanced_sidebar():
         
         # Session info
         st.markdown("### 📊 Session Status")
-        uptime_hours = (datetime.now() - datetime.now().replace(hour=9, minute=0, second=0)).seconds / 3600
-        
-        st.markdown(f"""
-        <div style="
-            background: var(--bg-secondary);
-            padding: 1rem;
-            border-radius: 12px;
-            border-left: 4px solid var(--success-color);
-        ">
-            <div style="color: var(--text-primary); font-weight: 600;">🟢 Session Active</div>
-            <div style="color: var(--text-secondary); font-size: 0.9rem;">
-                Uptime: {uptime_hours:.1f} hours<br>
-                Theme: {current_theme.title()}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.success("🟢 Session Active")
+        st.text(f"Theme: {current_theme.title()}")
+        st.text(f"Session: {st.session_state.get('app_session', 'unknown')[:8]}")
         
         # Quick actions
         st.markdown("### ⚡ Quick Actions")
         if st.button("🔄 Refresh Data"):
             st.success("✅ Data refreshed!")
-            st.rerun()
 
-def create_professional_footer():
-    """Create professional footer"""
+def create_footer():
+    """Create simple footer"""
     st.markdown("---")
-    st.markdown(f"""
-    <div style="
-        background: var(--bg-secondary);
-        border-top: 2px solid var(--border-color);
-        padding: 2rem;
-        margin-top: 3rem;
-        text-align: center;
-        border-radius: 12px 12px 0 0;
-    ">
-        <h3 style="margin: 0; color: var(--text-primary);">
-            {APP_CONFIG['icon']} {APP_CONFIG['name']}
-        </h3>
-        <p style="margin: 0.5rem 0; color: var(--text-secondary);">
-            {APP_CONFIG['tagline']} v{APP_CONFIG['version']}
-        </p>
-        <div style="color: var(--text-muted); font-size: 0.85rem;">
-            Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} • 
-            Session: {st.session_state.get('app_session', 'unknown')[:8]}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"**{APP_CONFIG['name']} v{APP_CONFIG['version']}**")
+    st.markdown(f"*{APP_CONFIG['tagline']}*")
+    st.text(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN EXECUTION
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Apply theme
+# Apply light theme if selected
 if st.session_state.get('theme', 'dark') == 'light':
     st.markdown('<div class="light-theme">', unsafe_allow_html=True)
 
 # Create sidebar
-create_advanced_sidebar()
+create_sidebar()
 
-# Create navigation
-tabs = create_main_navigation()
+# Create main navigation
+tab_labels = []
+for symbol in INSTRUMENTS.keys():
+    metadata = INSTRUMENTS[symbol]
+    tab_labels.append(f"{metadata['icon']} {symbol}")
 
-# SPX Tab (Index 0)
+# Add special tabs
+tab_labels.extend(["📊 Analytics", "📤 Export"])
+
+# Create tabs
+tabs = st.tabs(tab_labels)
+
+# SPX Tab (Index 0) - YOUR EXACT ORIGINAL LOGIC
 with tabs[0]:
-    st.markdown("""
-    <div class="metric-card animate-fade-in" style="
-        background: linear-gradient(135deg, #FFD70020, #FFD70010);
-        border-left: 4px solid #FFD700;
-        text-align: center;
-        margin-bottom: 2rem;
-    ">
-        <h2 style="margin: 0; color: var(--text-primary);">📈 S&P 500 Professional Dashboard</h2>
-        <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary);">
-            Advanced SPX forecasting with multi-anchor analysis
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("## 📈 S&P 500 Professional Dashboard")
+    st.markdown("*Advanced SPX forecasting with multi-anchor analysis*")
     
-    # SPX configuration - YOUR EXACT ORIGINAL DESIGN
+    # Anchor Points Configuration - YOUR EXACT DESIGN
     st.markdown("### 🎯 Anchor Points Configuration")
     
     c1, c2, c3 = st.columns(3)
+    
     with c1:
         st.markdown("**📈 High Anchor**")
-        hp = st.number_input("High Price", value=6185.8, min_value=0.0)
-        ht = st.time_input("High Time", time(11, 30))
+        hp = st.number_input("High Price", value=6185.8, min_value=0.0, key="spx_high_price")
+        ht = st.time_input("High Time", time(11, 30), key="spx_high_time")
     
     with c2:
         st.markdown("**📊 Close Anchor**")
-        cp = st.number_input("Close Price", value=6170.2, min_value=0.0)
-        ct = st.time_input("Close Time", time(15))
+        cp = st.number_input("Close Price", value=6170.2, min_value=0.0, key="spx_close_price")
+        ct = st.time_input("Close Time", time(15), key="spx_close_time")
     
     with c3:
         st.markdown("**📉 Low Anchor**")
-        lp = st.number_input("Low Price", value=6130.4, min_value=0.0)
-        lt = st.time_input("Low Time", time(13, 30))
+        lp = st.number_input("Low Price", value=6130.4, min_value=0.0, key="spx_low_price")
+        lt = st.time_input("Low Time", time(13, 30), key="spx_low_time")
     
-    # Contract line - YOUR EXACT DESIGN
+    # Contract Line Configuration - YOUR EXACT DESIGN
     st.markdown("### 🎯 Contract Line Configuration")
+    st.markdown("*Define the two-point contract line for precise forecasting*")
+    
     o1, o2 = st.columns(2)
     
     with o1:
         st.markdown("**📍 Low-1 Point**")
-        l1_t = st.time_input("Low-1 Time", time(2), step=300)
-        l1_p = st.number_input("Low-1 Price", value=10.0, min_value=0.0, step=0.01)
+        l1_t = st.time_input("Low-1 Time", time(2), step=300, key="contract_low1_time")
+        l1_p = st.number_input("Low-1 Price", value=10.0, min_value=0.0, step=0.01, key="contract_low1_price")
     
     with o2:
         st.markdown("**📍 Low-2 Point**")
-        l2_t = st.time_input("Low-2 Time", time(3, 30), step=300)
-        l2_p = st.number_input("Low-2 Price", value=12.0, min_value=0.0, step=0.01)
+        l2_t = st.time_input("Low-2 Time", time(3, 30), step=300, key="contract_low2_time")
+        l2_p = st.number_input("Low-2 Price", value=12.0, min_value=0.0, step=0.01, key="contract_low2_price")
     
-    # Generate forecast - YOUR EXACT LOGIC
-    if st.button("🚀 Generate SPX Forecast"):
+    # Generate Forecast Button - YOUR EXACT LOGIC
+    if st.button("🚀 Generate SPX Forecast", key="generate_spx_forecast"):
         with st.spinner("Generating SPX analysis..."):
+            # YOUR EXACT SPX FORECASTING LOGIC PRESERVED
             forecast_date = date.today() + timedelta(days=1)
             anchor_dt = datetime.combine(forecast_date, l1_t)
             target_dt = datetime.combine(forecast_date, l2_t)
             
-            # YOUR EXACT BLOCK CALCULATION
+            # YOUR EXACT BLOCK CALCULATION - SPX METHOD
             blocks = 0
             current = anchor_dt
             while current < target_dt:
-                if current.hour != 16:  # Exclude 4PM hour
+                if current.hour != 16:  # YOUR EXACT LOGIC - EXCLUDE 4PM HOUR
                     blocks += 1
                 current += timedelta(minutes=30)
             
+            # YOUR EXACT SLOPE CALCULATION
             slope = (l2_p - l1_p) / (blocks if blocks > 0 else 1)
             
+            # Store contract data for lookup
             st.session_state.contract_data = {
                 "anchor_time": anchor_dt,
                 "slope": slope,
@@ -5215,64 +5162,156 @@ with tabs[0]:
             }
             
             st.success("✅ SPX forecast generated successfully!")
+            st.info(f"Contract Slope: {slope:.6f} | Anchor: {l1_p:.2f} @ {l1_t.strftime('%H:%M')} | Blocks: {blocks}")
     
-    # Real-time lookup
+    # Real-time Lookup - YOUR EXACT DESIGN
     st.markdown("### 🔍 Real-time Lookup")
+    st.markdown("*Get instant projections for any time point*")
+    
     lookup_col1, lookup_col2 = st.columns([2, 1])
     
     with lookup_col1:
-        lookup_t = st.time_input("Lookup Time", time(9, 25), step=300)
+        lookup_t = st.time_input("Lookup Time", time(9, 25), step=300, key="spx_lookup_time")
     
     with lookup_col2:
         if st.session_state.get('contract_data', {}).get("anchor_time"):
+            # YOUR EXACT LOOKUP CALCULATION
             lookup_target = datetime.combine(date.today() + timedelta(days=1), lookup_t)
             
+            # YOUR EXACT BLOCK CALCULATION FOR LOOKUP
             blocks = 0
             current = st.session_state.contract_data["anchor_time"]
             while current < lookup_target:
-                if current.hour != 16:
+                if current.hour != 16:  # YOUR EXACT LOGIC
                     blocks += 1
                 current += timedelta(minutes=30)
             
+            # YOUR EXACT PROJECTION CALCULATION
             val = st.session_state.contract_data["price"] + st.session_state.contract_data["slope"] * blocks
             
-            st.markdown(f"""
-            <div style="
-                background: var(--primary-gradient);
-                color: white;
-                padding: 1.5rem;
-                border-radius: 12px;
-                text-align: center;
-            ">
-                <div style="font-size: 0.9rem; opacity: 0.9;">Projection @ {lookup_t.strftime('%H:%M')}</div>
-                <div style="font-size: 2rem; font-weight: 800; font-family: monospace;">{val:.2f}</div>
-                <div style="font-size: 0.8rem; opacity: 0.8;">
-                    Blocks: {blocks} | Slope: {st.session_state.contract_data["slope"]:.6f}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            # Display result
+            st.success(f"**Projection @ {lookup_t.strftime('%H:%M')}: {val:.2f}**")
+            st.text(f"Blocks: {blocks}")
+            st.text(f"Slope: {st.session_state.contract_data['slope']:.6f}")
         else:
-            st.info("🔄 Generate forecast to activate lookup")
+            st.info("🔄 Generate forecast to activate real-time lookup")
 
-# Stock tabs (1-8)
+# Individual Stock Tabs (Indices 1-8)
 stock_symbols = [symbol for symbol in INSTRUMENTS.keys() if symbol != "SPX"]
 for i, symbol in enumerate(stock_symbols, 1):
     with tabs[i]:
-        st.markdown(f"### {INSTRUMENTS[symbol]['icon']} {symbol} Analysis")
-        st.info(f"{symbol} multi-page analysis system ready")
+        metadata = INSTRUMENTS[symbol]
+        st.markdown(f"## {metadata['icon']} {metadata['name']} Analysis")
+        st.markdown(f"*{metadata.get('description', 'Professional stock analysis')}*")
+        
+        # Basic stock configuration
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**📉 Previous Session Low**")
+            low_price = st.number_input("Low Price", value=0.0, min_value=0.0, key=f"{symbol}_low_price")
+            low_time = st.time_input("Low Time", time(7, 30), key=f"{symbol}_low_time")
+        
+        with col2:
+            st.markdown("**📈 Previous Session High**")
+            high_price = st.number_input("High Price", value=0.0, min_value=0.0, key=f"{symbol}_high_price")
+            high_time = st.time_input("High Time", time(7, 30), key=f"{symbol}_high_time")
+        
+        # Quick analysis
+        if st.button(f"🚀 Analyze {symbol}", key=f"analyze_{symbol}"):
+            if low_price > 0 or high_price > 0:
+                current_slope = st.session_state.slopes.get(symbol, BASE_SLOPES[symbol])
+                st.success(f"✅ {symbol} analysis configured!")
+                st.info(f"Current Slope: {current_slope:.4f}")
+                
+                # Store configuration
+                st.session_state[f"{symbol}_config"] = {
+                    "low_price": low_price,
+                    "low_time": low_time,
+                    "high_price": high_price,
+                    "high_time": high_time
+                }
+            else:
+                st.warning("⚠️ Please enter at least one price value")
 
-# Analytics tab (9)
+# Analytics Tab (Index 9)
 with tabs[9]:
-    st.markdown("### 📊 Analytics Dashboard")
-    st.info("Analytics system ready")
+    st.markdown("## 📊 Analytics Dashboard")
+    st.markdown("*Performance monitoring and system analytics*")
+    
+    # Portfolio metrics
+    metrics_col1, metrics_col2, metrics_col3, metrics_col4 = st.columns(4)
+    
+    with metrics_col1:
+        st.metric("Active Instruments", len(INSTRUMENTS))
+    
+    with metrics_col2:
+        active_configs = len([k for k in st.session_state.keys() if k.endswith('_config')])
+        st.metric("Active Forecasts", active_configs)
+    
+    with metrics_col3:
+        avg_slope = sum(abs(slope) for slope in st.session_state.slopes.values()) / len(st.session_state.slopes)
+        st.metric("Avg Slope Magnitude", f"{avg_slope:.4f}")
+    
+    with metrics_col4:
+        uptime = (datetime.now() - datetime.now().replace(hour=9, minute=0, second=0)).seconds / 3600
+        st.metric("Session Uptime", f"{uptime:.1f}h")
+    
+    # Slope analysis
+    st.markdown("### 📈 Slope Analysis")
+    slope_data = []
+    for symbol, slope in st.session_state.slopes.items():
+        slope_data.append({
+            "Symbol": symbol,
+            "Current Slope": f"{slope:.4f}",
+            "Base Slope": f"{BASE_SLOPES[symbol]:.4f}",
+            "Direction": "Bullish" if slope > 0 else "Bearish" if slope < 0 else "Neutral"
+        })
+    
+    df = pd.DataFrame(slope_data)
+    st.dataframe(df, use_container_width=True)
 
-# Export tab (10)
+# Export Tab (Index 10)
 with tabs[10]:
-    st.markdown("### 📤 Export Center")
-    st.info("Export system ready")
+    st.markdown("## 📤 Export Center")
+    st.markdown("*Export your configurations and data*")
+    
+    export_col1, export_col2 = st.columns(2)
+    
+    with export_col1:
+        st.markdown("### 📊 Data Exports")
+        
+        if st.button("📋 Export Slopes as CSV"):
+            csv_data = pd.DataFrame([
+                {"Symbol": k, "Slope": v, "Base": BASE_SLOPES[k]} 
+                for k, v in st.session_state.slopes.items()
+            ]).to_csv(index=False)
+            
+            st.download_button(
+                "⬇️ Download Slopes CSV",
+                csv_data,
+                f"drspx_slopes_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                "text/csv"
+            )
+    
+    with export_col2:
+        st.markdown("### ⚙️ Configuration")
+        
+        if st.button("💾 Export Configuration"):
+            config_data = {
+                "slopes": st.session_state.slopes,
+                "exported_at": datetime.now().isoformat()
+            }
+            
+            st.download_button(
+                "⬇️ Download Configuration",
+                json.dumps(config_data, indent=2),
+                f"drspx_config_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                "application/json"
+            )
 
 # Footer
-create_professional_footer()
+create_footer()
 
 # Close light theme
 if st.session_state.get('theme', 'dark') == 'light':
