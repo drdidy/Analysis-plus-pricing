@@ -701,12 +701,17 @@ def render_enterprise_sidebar():
         # Risk Management
         st.markdown("### ⚠️ Risk Management")
         
-        risk_tolerance = st.selectbox(
-            "Risk Tolerance",
-            options=["conservative", "moderate", "aggressive"],
-            index=["conservative", "moderate", "aggressive"].index(st.session_state.risk_settings["tolerance"]),
-            format_func=lambda x: f"🛡️ {x.title()}"
-        )
+       # Fix the risk tolerance selection
+current_tolerance = st.session_state.risk_settings.get("tolerance", "moderate")
+if current_tolerance not in ["conservative", "moderate", "aggressive"]:
+    current_tolerance = "moderate"
+
+risk_tolerance = st.selectbox(
+    "Risk Tolerance",
+    options=["conservative", "moderate", "aggressive"],
+    index=["conservative", "moderate", "aggressive"].index(current_tolerance),
+    format_func=lambda x: f"🛡️ {x.title()}"
+)
         st.session_state.risk_settings["tolerance"] = risk_tolerance
         
         confidence_level = st.slider(
