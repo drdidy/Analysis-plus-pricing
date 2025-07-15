@@ -689,6 +689,9 @@ def render_enterprise_sidebar():
             help="Select the date for forecast analysis"
         )
         
+        # Store forecast date in session state
+        st.session_state.forecast_date = forecast_date
+        
         day_name = forecast_date.strftime("%A")
         
         # Session Status
@@ -698,20 +701,15 @@ def render_enterprise_sidebar():
         </div>
         """, unsafe_allow_html=True)
         
-        # Risk Management
+        # Risk Management - FIXED SECTION
         st.markdown("### ⚠️ Risk Management")
         
-       # Fix the risk tolerance selection
-current_tolerance = st.session_state.risk_settings.get("tolerance", "moderate")
-if current_tolerance not in ["conservative", "moderate", "aggressive"]:
-    current_tolerance = "moderate"
-
-risk_tolerance = st.selectbox(
-    "Risk Tolerance",
-    options=["conservative", "moderate", "aggressive"],
-    index=["conservative", "moderate", "aggressive"].index(current_tolerance),
-    format_func=lambda x: f"🛡️ {x.title()}"
-)
+        risk_tolerance = st.selectbox(
+            "Risk Tolerance",
+            options=["conservative", "moderate", "aggressive"],
+            index=1,  # Default to "moderate"
+            format_func=lambda x: f"🛡️ {x.title()}"
+        )
         st.session_state.risk_settings["tolerance"] = risk_tolerance
         
         confidence_level = st.slider(
