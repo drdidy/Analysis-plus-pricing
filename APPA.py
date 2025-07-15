@@ -5026,9 +5026,12 @@ def create_export_tab():
     tips_col1, tips_col2 = st.columns(2)
     
     with tips_col1:
-        st.markdown("""
-        **📊 CSV Exports:**
-        -
+     st.markdown("""
+**📊 CSV Exports:**
+- Export your slope configurations
+- Download forecast data as CSV files
+- Professional data formatting
+""")
 # PART 10 - SUPER SIMPLE FINAL INTEGRATION
 
 # Create sidebar
