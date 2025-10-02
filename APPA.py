@@ -223,16 +223,17 @@ else:
     for tab, a in zip(tabs, st.session_state.anchors):
         with tab:
             rows = []
-            for t in slots:
-                b = blocks_between(a["ts"], t, CFG.maint_start, CFG.maint_end)
-                desc = a["price"] + a["slope_down"] * b
-                asc = a["price"] + a["slope_up"] * b
-                rows.append({
-                    "Time (CT)": t,
-                    "Blocks": b,
-                    "Entry (Descending)": round(desc, 2),
-                    "Exit (Ascending)": round(asc, 2)
-                })
+for t in slots:
+    b = blocks_between(a["ts"], t, CFG.maint_start, CFG.maint_end)
+    desc = a["price"] + a["slope_down"] * b
+    asc = a["price"] + a["slope_up"] * b
+    entry_time_str = to_ct(t).strftime("%Y-%m-%d %H:%M")
+    rows.append({
+        "Entry Time (CT)": entry_time_str,
+        "Blocks": b,
+        "Entry (Descending)": round(desc, 2),
+        "Exit (Ascending)": round(asc, 2)
+    })
             df_out = pd.DataFrame(rows)
             if not show_blocks:
                 df_out = df_out[["Time (CT)", "Entry (Descending)", "Exit (Ascending)"]]
