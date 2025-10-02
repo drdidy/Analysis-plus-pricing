@@ -65,309 +65,427 @@ def available_names():
     used = {a["label"] for a in st.session_state.anchors}
     return [n for n in COOL_NAMES if n not in used]
 
-st.set_page_config(page_title="Springboard Planner", layout="wide")
+st.set_page_config(page_title="SPX Prophet", layout="wide")
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 * {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .block-container {
-    padding-top: 2rem;
-    padding-bottom: 2rem;
-    background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+    padding: 2rem 3rem;
+    background: #f8f9fb;
+    max-width: 1600px;
 }
 
 .main-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 2.5rem;
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%);
+    padding: 3rem 3rem 3rem 3rem;
     border-radius: 20px;
-    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
-    margin-bottom: 2rem;
+    box-shadow: 0 20px 60px rgba(30, 58, 138, 0.25);
+    margin-bottom: 2.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.main-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.05) 100%);
+    pointer-events: none;
+}
+
+.header-content {
+    position: relative;
+    z-index: 1;
 }
 
 .main-header h1 {
-    color: white;
-    font-size: 2.5rem;
-    font-weight: 800;
+    color: #ffffff;
+    font-size: 3rem;
+    font-weight: 900;
     margin: 0;
-    letter-spacing: -0.5px;
+    letter-spacing: -1px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
 }
 
 .main-header p {
-    color: rgba(255,255,255,0.9);
-    font-size: 1.1rem;
-    margin: 0.5rem 0 0 0;
-    font-weight: 400;
+    color: #e0e7ff;
+    font-size: 1.15rem;
+    margin: 0.75rem 0 0 0;
+    font-weight: 500;
+    letter-spacing: 0.3px;
 }
 
-.config-card {
-    background: white;
+.section-container {
+    background: #ffffff;
     border-radius: 16px;
-    padding: 2rem;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    padding: 2.5rem;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.06);
     margin-bottom: 2rem;
-    border: 1px solid rgba(0,0,0,0.05);
+    border: 1px solid #e5e7eb;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.section-icon {
+    font-size: 2rem;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
 }
 
 .section-title {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: #2d3748;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1f2937;
+    margin: 0;
+    letter-spacing: -0.3px;
+}
+
+.input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
     margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
 }
 
-.icon {
-    font-size: 1.8rem;
+.anchor-list {
+    margin-top: 2rem;
 }
 
-.anchor-card {
-    background: white;
-    border-radius: 16px;
-    padding: 2rem;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    margin-bottom: 2rem;
-    border: 1px solid rgba(0,0,0,0.05);
-}
-
-.anchor-list-header {
+.anchor-header {
     display: grid;
     grid-template-columns: 1.2fr 1.2fr 1fr 1fr 0.5fr;
-    gap: 1rem;
-    padding: 1rem;
-    background: #f7fafc;
-    border-radius: 10px;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    color: #4a5568;
-    font-size: 0.9rem;
+    gap: 1.5rem;
+    padding: 1rem 1.5rem;
+    background: #f9fafb;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+}
+
+.anchor-header-cell {
+    font-weight: 700;
+    color: #374151;
+    font-size: 0.85rem;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
 }
 
-.anchor-list-row {
+.anchor-row {
     display: grid;
     grid-template-columns: 1.2fr 1.2fr 1fr 1fr 0.5fr;
-    gap: 1rem;
-    padding: 1rem;
-    background: white;
-    border-radius: 10px;
-    margin-bottom: 0.5rem;
-    border: 1px solid #e2e8f0;
+    gap: 1.5rem;
+    padding: 1.25rem 1.5rem;
+    background: #ffffff;
+    border: 2px solid #f3f4f6;
+    border-radius: 12px;
+    margin-bottom: 0.75rem;
     align-items: center;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
 }
 
-.anchor-list-row:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    border-color: #cbd5e0;
+.anchor-row:hover {
+    border-color: #2563eb;
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.1);
+    transform: translateY(-2px);
 }
 
-.plan-cards-section {
-    background: white;
-    border-radius: 16px;
-    padding: 2rem;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    margin-bottom: 2rem;
-    border: 1px solid rgba(0,0,0,0.05);
+.anchor-name {
+    font-weight: 700;
+    color: #1f2937;
+    font-size: 1.05rem;
 }
 
-.current-time-badge {
+.anchor-data {
+    color: #4b5563;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.status-badge {
     display: inline-block;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: #dbeafe;
+    color: #1e40af;
     padding: 0.5rem 1.25rem;
     border-radius: 20px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    margin-bottom: 1.5rem;
-}
-
-.plan-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
-    margin-top: 1rem;
-}
-
-.plan-card {
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-    border-radius: 16px;
-    padding: 1.75rem;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-    border: 2px solid #e9ecef;
-    transition: all 0.3s;
-}
-
-.plan-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-    border-color: #667eea;
-}
-
-.plan-card-header {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: #2d3748;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.plan-card-value {
-    font-size: 2.25rem;
-    font-weight: 800;
-    color: #667eea;
-    margin: 0.75rem 0;
-    letter-spacing: -1px;
-}
-
-.plan-card-label {
     font-size: 0.9rem;
-    color: #718096;
-    font-weight: 500;
-    margin-bottom: 0.25rem;
-}
-
-.plan-card-mirror {
-    font-size: 1.1rem;
-    color: #48bb78;
     font-weight: 700;
-    margin-top: 0.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(30, 64, 175, 0.15);
 }
 
-.plan-card-divider {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
-    margin: 1rem 0;
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2rem;
+    margin-top: 1.5rem;
 }
 
-.plan-card-meta {
-    font-size: 0.85rem;
-    color: #a0aec0;
-    margin-top: 0.25rem;
-}
-
-.tables-section {
-    background: white;
+.metric-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+    border: 2px solid #e5e7eb;
     border-radius: 16px;
     padding: 2rem;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    margin-bottom: 2rem;
-    border: 1px solid rgba(0,0,0,0.05);
-}
-
-.stDataFrame {
-    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    transition: all 0.3s ease;
+    position: relative;
     overflow: hidden;
-    border: 1px solid #e2e8f0;
 }
 
-.footer-note {
-    background: #f7fafc;
-    border-left: 4px solid #667eea;
-    padding: 1.25rem 1.5rem;
-    border-radius: 8px;
-    color: #4a5568;
+.metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%);
+}
+
+.metric-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 32px rgba(37, 99, 235, 0.15);
+    border-color: #2563eb;
+}
+
+.metric-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+}
+
+.metric-name {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #1f2937;
+}
+
+.metric-time {
+    font-size: 0.85rem;
+    color: #6b7280;
+    font-weight: 600;
+}
+
+.metric-value-section {
+    margin: 1.5rem 0;
+}
+
+.metric-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #6b7280;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.metric-value {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #2563eb;
+    letter-spacing: -1.5px;
+    margin: 0.5rem 0;
+}
+
+.metric-exit {
+    font-size: 1.15rem;
+    color: #059669;
+    font-weight: 700;
+    margin-top: 0.75rem;
+}
+
+.metric-divider {
+    height: 1px;
+    background: #e5e7eb;
+    margin: 1.5rem 0;
+}
+
+.metric-meta {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-top: 0.5rem;
+    font-weight: 500;
+}
+
+.info-banner {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-left: 4px solid #2563eb;
+    padding: 1.5rem 2rem;
+    border-radius: 12px;
+    color: #1e40af;
     font-size: 0.95rem;
-    line-height: 1.6;
-    margin-top: 1rem;
+    line-height: 1.7;
+    margin-top: 1.5rem;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+}
+
+div[data-testid="stNumberInput"] label,
+div[data-testid="stDateInput"] label,
+div[data-testid="stTimeInput"] label,
+div[data-testid="stSelectbox"] label,
+div[data-testid="stTextInput"] label {
+    font-weight: 700;
+    color: #374151;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
 }
 
 div[data-testid="stNumberInput"] input,
 div[data-testid="stDateInput"] input,
 div[data-testid="stTimeInput"] input,
-div[data-testid="stSelectbox"] select {
+div[data-testid="stSelectbox"] select,
+div[data-testid="stTextInput"] input {
     border-radius: 10px;
-    border: 2px solid #e2e8f0;
-    padding: 0.75rem;
-    font-size: 1rem;
-    transition: all 0.2s;
+    border: 2px solid #d1d5db;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #1f2937;
+    transition: all 0.2s ease;
+    background: #ffffff;
 }
 
 div[data-testid="stNumberInput"] input:focus,
 div[data-testid="stDateInput"] input:focus,
 div[data-testid="stTimeInput"] input:focus,
-div[data-testid="stSelectbox"] select:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+div[data-testid="stSelectbox"] select:focus,
+div[data-testid="stTextInput"] input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    outline: none;
 }
 
 .stButton button {
     border-radius: 10px;
-    font-weight: 600;
-    padding: 0.75rem 1.5rem;
-    transition: all 0.2s;
+    font-weight: 700;
+    padding: 0.85rem 2rem;
+    transition: all 0.2s ease;
     border: none;
+    font-size: 0.95rem;
 }
 
 .stButton button[kind="primary"] {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .stButton button[kind="primary"]:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+}
+
+.stButton button:not([kind="primary"]) {
+    background: #ef4444;
+    color: white;
+}
+
+.stButton button:not([kind="primary"]):hover {
+    background: #dc2626;
+    transform: scale(1.05);
+}
+
+div[data-testid="stCheckbox"] {
+    background: #f9fafb;
+    padding: 1rem 1.25rem;
+    border-radius: 10px;
+    border: 2px solid #e5e7eb;
+}
+
+div[data-testid="stCheckbox"] label {
+    font-weight: 600;
+    color: #374151;
 }
 
 .stTabs [data-baseweb="tab-list"] {
-    gap: 0.5rem;
-    background: #f7fafc;
-    padding: 0.5rem;
+    gap: 0.75rem;
+    background: #f9fafb;
+    padding: 0.75rem;
     border-radius: 12px;
+    border: 1px solid #e5e7eb;
 }
 
 .stTabs [data-baseweb="tab"] {
     border-radius: 8px;
-    padding: 0.75rem 1.5rem;
-    font-weight: 600;
-    transition: all 0.2s;
+    padding: 0.85rem 1.75rem;
+    font-weight: 700;
+    color: #4b5563;
+    transition: all 0.2s ease;
 }
 
 .stTabs [aria-selected="true"] {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
     color: white;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.stDataFrame {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid #e5e7eb;
+}
+
+.stDataFrame [data-testid="stDataFrameResizable"] {
+    font-weight: 500;
+    color: #374151;
 }
 
 .stDownloadButton button {
-    background: #48bb78;
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
     color: white;
     border-radius: 10px;
-    font-weight: 600;
-    padding: 0.75rem 1.5rem;
-    transition: all 0.2s;
+    font-weight: 700;
+    padding: 0.85rem 2rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
 }
 
 .stDownloadButton button:hover {
-    background: #38a169;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(72, 187, 120, 0.3);
+    box-shadow: 0 8px 20px rgba(5, 150, 105, 0.4);
 }
 
-div[data-testid="stCheckbox"] {
-    background: #f7fafc;
-    padding: 0.75rem 1rem;
-    border-radius: 10px;
+.stAlert {
+    border-radius: 12px;
+    border: 2px solid #3b82f6;
+    background: #eff6ff;
+    padding: 1.5rem;
 }
 </style>
 """, unsafe_allow_html=True)
 
 st.markdown("""
 <div class="main-header">
-    <h1>📊 Springboard Planner</h1>
-    <p>Manual anchors → projected RTH tables, time-aware entries</p>
+    <div class="header-content">
+        <h1>📈 SPX Prophet</h1>
+        <p>Predicting The Future of SPX500</p>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="config-card">', unsafe_allow_html=True)
-st.markdown('<div class="section-title"><span class="icon">⚙️</span> Configuration</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-container">', unsafe_allow_html=True)
+st.markdown("""
+<div class="section-header">
+    <span class="section-icon">⚙️</span>
+    <h2 class="section-title">Configuration Settings</h2>
+</div>
+""", unsafe_allow_html=True)
+
 c1, c2, c3, c4 = st.columns([1.3,1,1,1])
 with c1:
     proj_date = st.date_input("Projected RTH Date (CT)", value=pd.Timestamp.today(tz=CT).date())
@@ -376,14 +494,22 @@ with c2:
 with c3:
     slope_up = st.number_input("Ascending slope /30m", value=CFG.slope_up, step=0.05, format="%.2f")
 with c4:
+    st.markdown("<br>", unsafe_allow_html=True)
     show_blocks = st.toggle("Show blocks column", value=False)
+
 st.markdown('</div>', unsafe_allow_html=True)
 
 CFG.slope_down = float(slope_down)
 CFG.slope_up = float(slope_up)
 
-st.markdown('<div class="anchor-card">', unsafe_allow_html=True)
-st.markdown('<div class="section-title"><span class="icon">⚓</span> Add Anchor</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-container">', unsafe_allow_html=True)
+st.markdown("""
+<div class="section-header">
+    <span class="section-icon">⚓</span>
+    <h2 class="section-title">Anchor Management</h2>
+</div>
+""", unsafe_allow_html=True)
+
 ca1, ca2, ca3, ca4, ca5 = st.columns([1.1,1.1,1,1,1.1])
 with ca1:
     opts = available_names()
@@ -398,7 +524,8 @@ with ca3:
 with ca4:
     a_price = st.number_input("Anchor price (H)", min_value=0.0, value=6721.80, step=0.1, format="%.2f", key="anchor_price")
 with ca5:
-    add_clicked = st.button("➕ Add to list", use_container_width=True, key="add_anchor", type="primary")
+    st.markdown("<br>", unsafe_allow_html=True)
+    add_clicked = st.button("➕ Add Anchor", use_container_width=True, key="add_anchor", type="primary")
 
 if add_clicked:
     label_val = (a_label if opts else (a_label.strip() or f"Anchor{len(st.session_state.anchors)+1}"))
@@ -413,14 +540,14 @@ if add_clicked:
     })
 
 if st.session_state.anchors:
-    st.markdown('<div style="margin-top: 2rem;">', unsafe_allow_html=True)
+    st.markdown('<div class="anchor-list">', unsafe_allow_html=True)
     st.markdown("""
-    <div class="anchor-list-header">
-        <div>Name</div>
-        <div>Timestamp (CT)</div>
-        <div>Price (H)</div>
-        <div>Slopes (↓/↑)</div>
-        <div>Action</div>
+    <div class="anchor-header">
+        <div class="anchor-header-cell">Name</div>
+        <div class="anchor-header-cell">Timestamp (CT)</div>
+        <div class="anchor-header-cell">Price (H)</div>
+        <div class="anchor-header-cell">Slopes (↓/↑)</div>
+        <div class="anchor-header-cell">Action</div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -428,19 +555,20 @@ if st.session_state.anchors:
     for i, a in enumerate(st.session_state.anchors):
         col1, col2, col3, col4, col5 = st.columns([1.2,1.2,1,1,0.5])
         with col1:
-            st.markdown(f"**{a['label']}**")
+            st.markdown(f'<div class="anchor-name">{a["label"]}</div>', unsafe_allow_html=True)
         with col2:
-            st.write(a["ts"].strftime("%Y-%m-%d %H:%M"))
+            st.markdown(f'<div class="anchor-data">{a["ts"].strftime("%Y-%m-%d %H:%M")}</div>', unsafe_allow_html=True)
         with col3:
-            st.write(f"{a['price']:.2f}")
+            st.markdown(f'<div class="anchor-data">{a["price"]:.2f}</div>', unsafe_allow_html=True)
         with col4:
-            st.write(f"{a['slope_down']:+.2f} / {a['slope_up']:+.2f}")
+            st.markdown(f'<div class="anchor-data">{a["slope_down"]:+.2f} / {a["slope_up"]:+.2f}</div>', unsafe_allow_html=True)
         with col5:
             if st.button("🗑️", key=f"del_{i}"):
                 del_idx = i
     
     if del_idx is not None:
         st.session_state.anchors.pop(del_idx)
+    
     st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
@@ -456,35 +584,51 @@ elif rounded >= slots[-1]:
 else:
     plan_time = min(slots, key=lambda s: abs((s - rounded).total_seconds()))
 
-st.markdown('<div class="plan-cards-section">', unsafe_allow_html=True)
-st.markdown('<div class="section-title"><span class="icon">📈</span> Plan Cards</div>', unsafe_allow_html=True)
-st.markdown(f'<div class="current-time-badge">🕐 Current CT: {now_ct.strftime("%Y-%m-%d %H:%M")}  •  Showing entries for: {plan_time.strftime("%H:%M")}</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-container">', unsafe_allow_html=True)
+st.markdown("""
+<div class="section-header">
+    <span class="section-icon">📊</span>
+    <h2 class="section-title">Live Trading Metrics</h2>
+</div>
+""", unsafe_allow_html=True)
 
-st.markdown('<div class="plan-grid">', unsafe_allow_html=True)
+st.markdown(f'<div class="status-badge">🕐 Current CT: {now_ct.strftime("%Y-%m-%d %H:%M")} • Showing entries for: {plan_time.strftime("%H:%M")}</div>', unsafe_allow_html=True)
+
+st.markdown('<div class="cards-grid">', unsafe_allow_html=True)
 for a in st.session_state.anchors:
     b = blocks_between(a["ts"], plan_time, CFG.maint_start, CFG.maint_end)
     desc = a["price"] + a["slope_down"] * b
     asc = a["price"] + a["slope_up"] * b
     card = f"""
-    <div class="plan-card">
-        <div class="plan-card-header">🎯 {a['label']} — {plan_time.strftime('%H:%M')}</div>
-        <div class="plan-card-label">Entry (descending)</div>
-        <div class="plan-card-value">{desc:.2f}</div>
-        <div class="plan-card-mirror">Exit mirror: {asc:.2f}</div>
-        <div class="plan-card-divider"></div>
-        <div class="plan-card-meta">📊 Blocks since anchor: {b}</div>
-        <div class="plan-card-meta">⚓ Anchor @ {a['ts'].strftime('%Y-%m-%d %H:%M')} • H={a['price']:.2f}</div>
+    <div class="metric-card">
+        <div class="metric-header">
+            <div class="metric-name">{a['label']}</div>
+            <div class="metric-time">{plan_time.strftime('%H:%M')}</div>
+        </div>
+        <div class="metric-value-section">
+            <div class="metric-label">Entry (Descending)</div>
+            <div class="metric-value">{desc:.2f}</div>
+            <div class="metric-exit">Exit Mirror: {asc:.2f}</div>
+        </div>
+        <div class="metric-divider"></div>
+        <div class="metric-meta">📊 Blocks since anchor: {b}</div>
+        <div class="metric-meta">⚓ Anchor @ {a['ts'].strftime('%Y-%m-%d %H:%M')} • H={a['price']:.2f}</div>
     </div>
     """
     st.markdown(card, unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
-st.markdown('<div class="tables-section">', unsafe_allow_html=True)
-st.markdown('<div class="section-title"><span class="icon">📋</span> Projection Tables (RTH)</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-container">', unsafe_allow_html=True)
+st.markdown("""
+<div class="section-header">
+    <span class="section-icon">📋</span>
+    <h2 class="section-title">Projection Tables (RTH)</h2>
+</div>
+""", unsafe_allow_html=True)
 
 if not st.session_state.anchors:
-    st.info("💡 Add at least one anchor to generate tables.")
+    st.info("💡 Add at least one anchor to generate projection tables.")
 else:
     tabs = st.tabs([f"📊 {a['label']}" for a in st.session_state.anchors])
     for tab, a in zip(tabs, st.session_state.anchors):
@@ -506,7 +650,7 @@ else:
                 df_out = df_out[["Entry Time (CT)", "Entry (Descending)", "Exit (Ascending)"]]
             st.dataframe(df_out, use_container_width=True, hide_index=True)
             st.download_button(
-                f"⬇️ Download {a['label']} table",
+                f"⬇️ Download {a['label']} CSV",
                 df_out.to_csv(index=False).encode("utf-8"),
                 file_name=f"{a['label']}_{proj_ts.date()}_RTH.csv",
                 mime="text/csv",
@@ -514,7 +658,7 @@ else:
 st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown("""
-<div class="footer-note">
-    ℹ️ Entries use descending line (−0.25/30m default). Exits use ascending line (+0.25/30m). Maintenance 16:00–17:00 excluded from block counts. Overnight anchors are supported.
+<div class="info-banner">
+    <strong>ℹ️ Trading Parameters:</strong> Entries use descending line (−0.25/30m default). Exits use ascending line (+0.25/30m). Maintenance window 16:00–17:00 excluded from block counts. Overnight anchors are supported.
 </div>
 """, unsafe_allow_html=True)
