@@ -1,15 +1,13 @@
 from __future__ import annotations
-import numpy as np
-import pandas as pd
-import pytz
 import streamlit as st
+import pandas as pd
+import numpy as np
+import pytz
 from dataclasses import dataclass
 from typing import List, Dict, Optional
 
+# ---------- Time / Config ----------
 CT = pytz.timezone("America/Chicago")
-
-st.set_page_config(page_title="Springboard Tables", layout="wide")
-st.title("Springboard Tables — Manual Anchors → Projected RTH")
 
 @dataclass
 class AppCfg:
@@ -17,23 +15,16 @@ class AppCfg:
     slope_up: float = 0.25
     rth_start: str = "08:30"
     rth_end: str = "15:00"
-    maintenance_start: str = "16:00"
-    maintenance_end: str = "17:00"
-    yf_ticker: str = "^GSPC"
-    yf_on: bool = False
+    maint_start: str = "16:00"
+    maint_end: str = "17:00"
 
 CFG = AppCfg()
 
+# ---------- Helpers ----------
 def to_ct(ts: pd.Timestamp) -> pd.Timestamp:
     if ts.tzinfo is None:
-        ts = ts.tz_localize(CT)
-    else:
-        ts = ts.tz_convert(CT)
-    return ts
-
-def make_dt(date: pd.Timestamp, hm: str) -> pd.Timestamp:
-    h, m = map(int, hm.split(":"))
-    return to_ct(pd.Timestamp(year=date.year, month=date.month, day=date.day, hour=h, minute=m, tz=CT))
+        return ts.tz_localize(CT)
+    return ts.tz_convert(CT)
 
 def rth_slots(day: pd.Timestamp, start="08:30", end="15:00") -> pd.DatetimeIndex:
     day = to_ct(pd.Timestamp(day.date(), tz=CT))
@@ -52,83 +43,224 @@ def blocks_between(start_ts: pd.Timestamp, end_ts: pd.Timestamp, maint_start="16
     mask = ~(((rng.hour == 16) & (rng.minute == 0)) | ((rng.hour == 16) & (rng.minute == 30)))
     return int(mask.sum())
 
-@st.cache_data(show_spinner=False)
-def yf_fetch(ticker: str, day: pd.Timestamp) -> pd.DataFrame:
-    try:
-        import yfinance as yf
-    except Exception:
-        return pd.DataFrame()
-    day = to_ct(pd.Timestamp(day.date(), tz=CT))
-    prev = day - pd.Timedelta(days=2)
-    nxt = day + pd.Timedelta(days=1)
-    df = yf.download(ticker, interval="30m", start=prev.tz_convert("UTC").to_pydatetime(), end=nxt.tz_convert("UTC").to_pydatetime(), progress=False)
-    if df.empty:
-        return df
-    df = df.rename(columns={"Open":"open","High":"high","Low":"low","Close":"close","Volume":"volume"})
-    df["datetime"] = pd.to_datetime(df.index, utc=True).tz_convert(CT)
-    df = df.sort_values("datetime").reset_index(drop=True)
-    start_ct = day + pd.Timedelta(hours=8, minutes=30)
-    end_ct = day + pd.Timedelta(hours=15, minutes=0)
-    m = (df["datetime"] >= start_ct) & (df["datetime"] < end_ct)
-    return df.loc[m, ["datetime","open","high","low","close","volume"]].reset_index(drop=True)
+def round_to_nearest_30m(now_ct: pd.Timestamp) -> pd.Timestamp:
+    now_ct = to_ct(now_ct)
+    minute = now_ct.minute
+    base = now_ct.replace(second=0, microsecond=0)
+    if minute % 30 == 0:
+        return base
+    # nearest: <15 -> down; >=15 -> up to next half hour mark
+    offset = 30 - (minute % 30)
+    if (minute % 30) < 15:
+        return base - pd.Timedelta(minutes=(minute % 30))
+    else:
+        return base + pd.Timedelta(minutes=offset)
 
-with st.sidebar:
-    st.subheader("Settings")
-    proj_date = st.date_input("Projected RTH date (CT)", value=pd.Timestamp.today(tz=CT).date())
-    prior_date = st.date_input("Anchor day (CT, prior RTH)", value=(pd.Timestamp(proj_date) - pd.Timedelta(days=1)).date())
-    CFG.slope_down = st.number_input("Slope per 30m (descending)", value=CFG.slope_down, step=0.05, format="%.2f")
-    CFG.slope_up = st.number_input("Slope per 30m (ascending)", value=CFG.slope_up, step=0.05, format="%.2f")
-    CFG.yf_on = st.toggle("Attach Yahoo Finance O/H/L/C to tables", value=False)
-    CFG.yf_ticker = st.text_input("Yahoo Finance ticker (if ON)", value=CFG.yf_ticker)
+# ---------- State ----------
+if "anchors" not in st.session_state:
+    st.session_state.anchors = []  # list of dicts with label, ts (Timestamp), price, slopes
 
-st.markdown("#### Anchors (manual) — add/edit rows")
-sample = pd.DataFrame([
-    {"label":"A1","time_hhmm":"10:30","price":6721.80},
-    {"label":"A2","time_hhmm":"12:00","price":6732.40},
-])
-data = st.data_editor(sample, num_rows="dynamic", use_container_width=True, key="anchors_editor")
+COOL_NAMES = [
+    "Comet", "Nebula", "Aurora", "Quasar", "Pulsar", "Photon",
+    "Zenith", "Halo", "Vortex", "Eclipse", "Nova", "Orbit"
+]
 
-data = data.dropna(subset=["label","time_hhmm","price"])
-if data.empty:
-    st.stop()
+def next_cool_name() -> str:
+    used = {a["label"] for a in st.session_state.anchors}
+    for name in COOL_NAMES:
+        if name not in used:
+            return name
+    return f"Anchor{len(st.session_state.anchors)+1}"
 
-proj_day_ts = to_ct(pd.Timestamp(proj_date, tz=CT))
-prior_day_ts = to_ct(pd.Timestamp(prior_date, tz=CT))
-slots = rth_slots(proj_day_ts, CFG.rth_start, CFG.rth_end)
+# ---------- UI Skeleton ----------
+st.set_page_config(page_title="Springboard Planner", layout="wide")
 
-yf_df: Optional[pd.DataFrame] = None
-if CFG.yf_on:
-    with st.spinner("Fetching Yahoo Finance..."):
-        yf_df = yf_fetch(CFG.yf_ticker, proj_day_ts)
+st.markdown("""
+<style>
+:root {
+  --glass-bg: rgba(255,255,255,0.10);
+  --glass-border: rgba(255,255,255,0.18);
+  --glass-shadow: 0 8px 32px rgba(31,38,135,0.25);
+  --accent: #7c5cff;
+  --accent2: #24d6d9;
+}
+.block-container {padding-top: 1.2rem;}
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow: var(--glass-shadow);
+  padding: 1rem 1.2rem;
+}
+.header {
+  font-size: 1.8rem; font-weight: 700; letter-spacing: .3px;
+}
+.subtle {opacity: .75}
+.badge {
+  display:inline-block; padding: .25rem .6rem; border-radius: 999px;
+  background: linear-gradient(90deg,var(--accent),var(--accent2)); color:white; font-size:.75rem;
+}
+.plan-grid {
+  display:grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr));
+  gap: 14px; margin-top: .5rem;
+}
+.plan-card {
+  background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.18);
+  border-radius:16px; padding: 14px; box-shadow: var(--glass-shadow);
+}
+.plan-title { font-weight: 700; font-size: 1rem; display:flex; align-items:center; gap:.5rem}
+.plan-kpi { font-size: 1.6rem; font-weight: 800; margin-top:.35rem;}
+.kpi-sub { font-size:.8rem; opacity:.8}
+.icon {
+  width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center;
+  border-radius:8px; background: linear-gradient(180deg,var(--accent),var(--accent2)); color:white;
+}
+hr.sep {border:0; height:1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent); margin: 14px 0 10px;}
+</style>
+""", unsafe_allow_html=True)
 
-tabs = st.tabs(list(data["label"]))
-for tab_label in data["label"]:
-    row = data.loc[data["label"] == tab_label].iloc[0]
-    anchor_ts = make_dt(prior_day_ts, row["time_hhmm"])
-    H = float(row["price"])
-    rows = []
-    for t in slots:
-        b = blocks_between(anchor_ts, t, CFG.maintenance_start, CFG.maintenance_end)
-        desc = H + CFG.slope_down * b
-        asc = H + CFG.slope_up * b
-        rec_entry = desc
-        rec_exit = asc
-        rec = {"Time": t, "Blocks": b, "Descending": round(desc, 2), "Ascending": round(asc, 2), "Entry(desc)": round(rec_entry, 2), "Exit(asc)": round(rec_exit, 2)}
-        if CFG.yf_on and yf_df is not None and not yf_df.empty:
-            m = yf_df["datetime"] == t
-            if m.any():
-                bar = yf_df.loc[m].iloc[0]
-                rec.update({"Open": float(bar["open"]), "High": float(bar["high"]), "Low": float(bar["low"]), "Close": float(bar["close"])})
-        rows.append(rec)
-    out = pd.DataFrame(rows)
-    with tabs[list(data["label"]).index(tab_label)]:
-        st.markdown(f"**{tab_label}** — anchor {prior_date} {row['time_hhmm']} CT @ {H:.2f}")
-        st.dataframe(out, use_container_width=True, hide_index=True)
-        st.download_button(
-            f"Download {tab_label} table",
-            out.to_csv(index=False).encode("utf-8"),
-            file_name=f"{tab_label}_{proj_date}_tables.csv",
-            mime="text/csv",
-        )
+st.markdown('<div class="header">🌌 Springboard Planner</div><span class="subtle">Manual anchors → projected RTH tables, entries & exits</span>', unsafe_allow_html=True)
 
-st.caption("Tables compute descending (entry) and ascending (exit) lines from each manual anchor across the projected RTH (08:30–15:00 CT). Maintenance 16:00–17:00 excluded from block counts.")
+# ---------- Global Settings Row ----------
+c1, c2, c3, c4 = st.columns([1.3,1,1,1])
+with c1:
+    proj_date = st.date_input("Projected RTH Date (CT)", value=pd.Timestamp.today(tz=CT).date(), help="Tables will be generated for this RTH window (08:30–15:00 CT).")
+with c2:
+    slope_down = st.number_input("Descending slope /30m", value=CFG.slope_down, step=0.05, format="%.2f")
+with c3:
+    slope_up = st.number_input("Ascending slope /30m", value=CFG.slope_up, step=0.05, format="%.2f")
+with c4:
+    show_minutes = st.toggle("Show blocks column", value=False)
+
+CFG.slope_down = float(slope_down)
+CFG.slope_up = float(slope_up)
+
+# ---------- Add Anchor (Card) ----------
+st.markdown('<div class="glass">', unsafe_allow_html=True)
+st.markdown('**➕ Add Anchor** &nbsp;<span class="badge">date+time</span>', unsafe_allow_html=True)
+ca1, ca2, ca3, ca4, ca5 = st.columns([1.1,1.1,1,1,1.1])
+with ca1:
+    a_label = st.text_input("Anchor name", value=next_cool_name(), help="Use a memorable label (e.g., Comet, Aurora).")
+with ca2:
+    a_date = st.date_input("Anchor date (CT)", value=(pd.Timestamp(proj_date) - pd.Timedelta(days=1)).date())
+with ca3:
+    a_time = st.time_input("Anchor time (CT)", value=pd.Timestamp("1900-01-01 10:30").time(), help="Any time (incl. overnight like 19:00).")
+with ca4:
+    a_price = st.number_input("Anchor price (H)", min_value=0.0, value=6721.80, step=0.1, format="%.2f")
+with ca5:
+    add_clicked = st.button("Add to list", use_container_width=True)
+
+if add_clicked:
+    ts = to_ct(pd.Timestamp.combine(a_date, a_time, tzinfo=CT))
+    st.session_state.anchors.append({
+        "label": a_label.strip() or next_cool_name(),
+        "ts": ts,
+        "price": float(a_price),
+        "slope_down": CFG.slope_down,
+        "slope_up": CFG.slope_up
+    })
+
+if st.session_state.anchors:
+    st.markdown("<hr class='sep'/>", unsafe_allow_html=True)
+    v_cols = st.columns([1.2,1.2,1,1,0.5])
+    with v_cols[0]:
+        st.write("**Name**")
+    with v_cols[1]:
+        st.write("**Timestamp (CT)**")
+    with v_cols[2]:
+        st.write("**Price (H)**")
+    with v_cols[3]:
+        st.write("**Slopes (↓/↑)**")
+    with v_cols[4]:
+        st.write("**Del**")
+    del_idx = None
+    for i, a in enumerate(st.session_state.anchors):
+        v1, v2, v3, v4, v5 = st.columns([1.2,1.2,1,1,0.5])
+        with v1:
+            st.write(f"🪐 {a['label']}")
+        with v2:
+            st.write(a["ts"].strftime("%Y-%m-%d %H:%M"))
+        with v3:
+            st.write(f"{a['price']:.2f}")
+        with v4:
+            st.write(f"{a['slope_down']:+.2f} / {a['slope_up']:+.2f}")
+        with v5:
+            if st.button("✖", key=f"del_{i}"):
+                del_idx = i
+    if del_idx is not None:
+        st.session_state.anchors.pop(del_idx)
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ---------- Build Slots and Plan Cards ----------
+proj_ts = to_ct(pd.Timestamp(proj_date, tz=CT))
+slots = rth_slots(proj_ts, CFG.rth_start, CFG.rth_end)
+
+now_ct = to_ct(pd.Timestamp.now(tz=CT))
+rounded = round_to_nearest_30m(now_ct)
+if rounded < slots[0]:
+    plan_time = slots[0]
+elif rounded >= slots[-1]:
+    plan_time = slots[-1]
+else:
+    # snap to the exact slot in slots (ensure it's a member)
+    plan_time = min(slots, key=lambda s: abs((s - rounded).total_seconds()))
+
+st.markdown('<div class="glass">', unsafe_allow_html=True)
+st.markdown('**📋 Plan Cards** &nbsp;<span class="badge">auto time-aware</span>', unsafe_allow_html=True)
+st.caption(f"Current CT: {now_ct.strftime('%Y-%m-%d %H:%M')} → showing entries for: **{plan_time.strftime('%H:%M')}**")
+
+st.markdown('<div class="plan-grid">', unsafe_allow_html=True)
+for a in st.session_state.anchors:
+    b = blocks_between(a["ts"], plan_time, CFG.maint_start, CFG.maint_end)
+    desc = a["price"] + a["slope_down"] * b
+    asc = a["price"] + a["slope_up"] * b
+    card = f"""
+    <div class="plan-card">
+      <div class="plan-title"><span class="icon">★</span> {a['label']} — {plan_time.strftime('%H:%M')}</div>
+      <div class="plan-kpi">{desc:.2f}</div>
+      <div class="kpi-sub">Entry (descending). Exit mirror: {asc:.2f}</div>
+      <hr class="sep"/>
+      <div class="subtle">Blocks since anchor: {b}</div>
+      <div class="subtle">Anchor @ {a['ts'].strftime('%Y-%m-%d %H:%M')} • H={a['price']:.2f}</div>
+    </div>
+    """
+    st.markdown(card, unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ---------- Tables per Anchor ----------
+st.markdown('<div class="glass">', unsafe_allow_html=True)
+st.markdown('**📈 Projection Tables (RTH)**', unsafe_allow_html=True)
+
+if not st.session_state.anchors:
+    st.info("Add at least one anchor to generate tables.")
+else:
+    tabs = st.tabs([a["label"] for a in st.session_state.anchors])
+    for tab, a in zip(tabs, st.session_state.anchors):
+        with tab:
+            rows = []
+            for t in slots:
+                b = blocks_between(a["ts"], t, CFG.maint_start, CFG.maint_end)
+                desc = a["price"] + a["slope_down"] * b
+                asc = a["price"] + a["slope_up"] * b
+                rows.append({
+                    "Time (CT)": t,
+                    "Blocks": b,
+                    "Entry (Descending)": round(desc, 2),
+                    "Exit (Ascending)": round(asc, 2)
+                })
+            df_out = pd.DataFrame(rows)
+            if not show_minutes:
+                df_out = df_out[["Time (CT)", "Entry (Descending)", "Exit (Ascending)"]]
+            st.dataframe(df_out, use_container_width=True, hide_index=True)
+            st.download_button(
+                f"Download {a['label']} table",
+                df_out.to_csv(index=False).encode("utf-8"),
+                file_name=f"{a['label']}_{proj_ts.date()}_RTH.csv",
+                mime="text/csv",
+            )
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.caption("Entries use the descending line from each anchor (−0.25/30m by default). Exits use the corresponding ascending line (+0.25/30m). Maintenance 16:00–17:00 excluded from block counts. You can input overnight anchors (e.g., 19:00 CT).")
