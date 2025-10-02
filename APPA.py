@@ -5,8 +5,8 @@ import numpy as np
 import pytz
 from dataclasses import dataclass
 from typing import List, Dict, Optional
+from datetime import datetime as pydt
 
-# ---------- Time / Config ----------
 CT = pytz.timezone("America/Chicago")
 
 @dataclass
@@ -20,7 +20,6 @@ class AppCfg:
 
 CFG = AppCfg()
 
-# ---------- Helpers ----------
 def to_ct(ts: pd.Timestamp) -> pd.Timestamp:
     if ts.tzinfo is None:
         return ts.tz_localize(CT)
@@ -49,16 +48,13 @@ def round_to_nearest_30m(now_ct: pd.Timestamp) -> pd.Timestamp:
     base = now_ct.replace(second=0, microsecond=0)
     if minute % 30 == 0:
         return base
-    # nearest: <15 -> down; >=15 -> up to next half hour mark
-    offset = 30 - (minute % 30)
     if (minute % 30) < 15:
         return base - pd.Timedelta(minutes=(minute % 30))
     else:
-        return base + pd.Timedelta(minutes=offset)
+        return base + pd.Timedelta(minutes=30 - (minute % 30))
 
-# ---------- State ----------
 if "anchors" not in st.session_state:
-    st.session_state.anchors = []  # list of dicts with label, ts (Timestamp), price, slopes
+    st.session_state.anchors = []
 
 COOL_NAMES = [
     "Comet", "Nebula", "Aurora", "Quasar", "Pulsar", "Photon",
@@ -72,7 +68,6 @@ def next_cool_name() -> str:
             return name
     return f"Anchor{len(st.session_state.anchors)+1}"
 
-# ---------- UI Skeleton ----------
 st.set_page_config(page_title="Springboard Planner", layout="wide")
 
 st.markdown("""
@@ -84,79 +79,68 @@ st.markdown("""
   --accent: #7c5cff;
   --accent2: #24d6d9;
 }
-.block-container {padding-top: 1.2rem;}
+.block-container {padding-top: 1.0rem;}
 .glass {
   background: var(--glass-bg);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--glass-border);
-  border-radius: 20px;
+  border-radius: 18px;
   box-shadow: var(--glass-shadow);
   padding: 1rem 1.2rem;
 }
-.header {
-  font-size: 1.8rem; font-weight: 700; letter-spacing: .3px;
-}
+.header { font-size: 1.6rem; font-weight: 700; letter-spacing: .2px; }
 .subtle {opacity: .75}
-.badge {
-  display:inline-block; padding: .25rem .6rem; border-radius: 999px;
-  background: linear-gradient(90deg,var(--accent),var(--accent2)); color:white; font-size:.75rem;
-}
 .plan-grid {
   display:grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr));
   gap: 14px; margin-top: .5rem;
 }
 .plan-card {
   background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.18);
-  border-radius:16px; padding: 14px; box-shadow: var(--glass-shadow);
+  border-radius:14px; padding: 14px; box-shadow: var(--glass-shadow);
 }
 .plan-title { font-weight: 700; font-size: 1rem; display:flex; align-items:center; gap:.5rem}
 .plan-kpi { font-size: 1.6rem; font-weight: 800; margin-top:.35rem;}
 .kpi-sub { font-size:.8rem; opacity:.8}
-.icon {
-  width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center;
-  border-radius:8px; background: linear-gradient(180deg,var(--accent),var(--accent2)); color:white;
-}
 hr.sep {border:0; height:1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent); margin: 14px 0 10px;}
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="header">🌌 Springboard Planner</div><span class="subtle">Manual anchors → projected RTH tables, entries & exits</span>', unsafe_allow_html=True)
+st.markdown('<div class="header">Springboard Planner</div><span class="subtle">Manual anchors → projected RTH tables, time-aware entries</span>', unsafe_allow_html=True)
 
-# ---------- Global Settings Row ----------
 c1, c2, c3, c4 = st.columns([1.3,1,1,1])
 with c1:
-    proj_date = st.date_input("Projected RTH Date (CT)", value=pd.Timestamp.today(tz=CT).date(), help="Tables will be generated for this RTH window (08:30–15:00 CT).")
+    proj_date = st.date_input("Projected RTH Date (CT)", value=pd.Timestamp.today(tz=CT).date())
 with c2:
     slope_down = st.number_input("Descending slope /30m", value=CFG.slope_down, step=0.05, format="%.2f")
 with c3:
     slope_up = st.number_input("Ascending slope /30m", value=CFG.slope_up, step=0.05, format="%.2f")
 with c4:
-    show_minutes = st.toggle("Show blocks column", value=False)
+    show_blocks = st.toggle("Show blocks column", value=False)
 
 CFG.slope_down = float(slope_down)
 CFG.slope_up = float(slope_up)
 
-# ---------- Add Anchor (Card) ----------
 st.markdown('<div class="glass">', unsafe_allow_html=True)
-st.markdown('**➕ Add Anchor** &nbsp;<span class="badge">date+time</span>', unsafe_allow_html=True)
+st.markdown('**Add Anchor**', unsafe_allow_html=True)
 ca1, ca2, ca3, ca4, ca5 = st.columns([1.1,1.1,1,1,1.1])
 with ca1:
-    a_label = st.text_input("Anchor name", value=next_cool_name(), help="Use a memorable label (e.g., Comet, Aurora).")
+    a_label = st.text_input("Anchor name", value=next_cool_name())
 with ca2:
     a_date = st.date_input("Anchor date (CT)", value=(pd.Timestamp(proj_date) - pd.Timedelta(days=1)).date())
 with ca3:
-    a_time = st.time_input("Anchor time (CT)", value=pd.Timestamp("1900-01-01 10:30").time(), help="Any time (incl. overnight like 19:00).")
+    a_time = st.time_input("Anchor time (CT)", value=pd.Timestamp("1900-01-01 10:30").time())
 with ca4:
     a_price = st.number_input("Anchor price (H)", min_value=0.0, value=6721.80, step=0.1, format="%.2f")
 with ca5:
     add_clicked = st.button("Add to list", use_container_width=True)
 
 if add_clicked:
-    ts = to_ct(pd.Timestamp.combine(a_date, a_time, tzinfo=CT))
+    naive_dt = pydt.combine(a_date, a_time)
+    ts = CT.localize(naive_dt)
     st.session_state.anchors.append({
         "label": a_label.strip() or next_cool_name(),
-        "ts": ts,
+        "ts": pd.Timestamp(ts),
         "price": float(a_price),
         "slope_down": CFG.slope_down,
         "slope_up": CFG.slope_up
@@ -179,7 +163,7 @@ if st.session_state.anchors:
     for i, a in enumerate(st.session_state.anchors):
         v1, v2, v3, v4, v5 = st.columns([1.2,1.2,1,1,0.5])
         with v1:
-            st.write(f"🪐 {a['label']}")
+            st.write(a['label'])
         with v2:
             st.write(a["ts"].strftime("%Y-%m-%d %H:%M"))
         with v3:
@@ -193,10 +177,8 @@ if st.session_state.anchors:
         st.session_state.anchors.pop(del_idx)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# ---------- Build Slots and Plan Cards ----------
 proj_ts = to_ct(pd.Timestamp(proj_date, tz=CT))
 slots = rth_slots(proj_ts, CFG.rth_start, CFG.rth_end)
-
 now_ct = to_ct(pd.Timestamp.now(tz=CT))
 rounded = round_to_nearest_30m(now_ct)
 if rounded < slots[0]:
@@ -204,12 +186,11 @@ if rounded < slots[0]:
 elif rounded >= slots[-1]:
     plan_time = slots[-1]
 else:
-    # snap to the exact slot in slots (ensure it's a member)
     plan_time = min(slots, key=lambda s: abs((s - rounded).total_seconds()))
 
 st.markdown('<div class="glass">', unsafe_allow_html=True)
-st.markdown('**📋 Plan Cards** &nbsp;<span class="badge">auto time-aware</span>', unsafe_allow_html=True)
-st.caption(f"Current CT: {now_ct.strftime('%Y-%m-%d %H:%M')} → showing entries for: **{plan_time.strftime('%H:%M')}**")
+st.markdown('**Plan Cards**', unsafe_allow_html=True)
+st.caption(f"Current CT: {now_ct.strftime('%Y-%m-%d %H:%M')}  •  showing entries for: **{plan_time.strftime('%H:%M')}**")
 
 st.markdown('<div class="plan-grid">', unsafe_allow_html=True)
 for a in st.session_state.anchors:
@@ -218,9 +199,9 @@ for a in st.session_state.anchors:
     asc = a["price"] + a["slope_up"] * b
     card = f"""
     <div class="plan-card">
-      <div class="plan-title"><span class="icon">★</span> {a['label']} — {plan_time.strftime('%H:%M')}</div>
+      <div class="plan-title">{a['label']} — {plan_time.strftime('%H:%M')}</div>
       <div class="plan-kpi">{desc:.2f}</div>
-      <div class="kpi-sub">Entry (descending). Exit mirror: {asc:.2f}</div>
+      <div class="kpi-sub">Entry (descending) • Exit mirror: {asc:.2f}</div>
       <hr class="sep"/>
       <div class="subtle">Blocks since anchor: {b}</div>
       <div class="subtle">Anchor @ {a['ts'].strftime('%Y-%m-%d %H:%M')} • H={a['price']:.2f}</div>
@@ -230,9 +211,8 @@ for a in st.session_state.anchors:
 st.markdown('</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# ---------- Tables per Anchor ----------
 st.markdown('<div class="glass">', unsafe_allow_html=True)
-st.markdown('**📈 Projection Tables (RTH)**', unsafe_allow_html=True)
+st.markdown('**Projection Tables (RTH)**', unsafe_allow_html=True)
 
 if not st.session_state.anchors:
     st.info("Add at least one anchor to generate tables.")
@@ -252,7 +232,7 @@ else:
                     "Exit (Ascending)": round(asc, 2)
                 })
             df_out = pd.DataFrame(rows)
-            if not show_minutes:
+            if not show_blocks:
                 df_out = df_out[["Time (CT)", "Entry (Descending)", "Exit (Ascending)"]]
             st.dataframe(df_out, use_container_width=True, hide_index=True)
             st.download_button(
@@ -263,4 +243,4 @@ else:
             )
 st.markdown('</div>', unsafe_allow_html=True)
 
-st.caption("Entries use the descending line from each anchor (−0.25/30m by default). Exits use the corresponding ascending line (+0.25/30m). Maintenance 16:00–17:00 excluded from block counts. You can input overnight anchors (e.g., 19:00 CT).")
+st.caption("Entries use descending line (−0.25/30m default). Exits use ascending line (+0.25/30m). Maintenance 16:00–17:00 excluded from block counts. Overnight anchors (e.g., 19:00 CT) are supported.")
