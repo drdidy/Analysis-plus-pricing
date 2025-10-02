@@ -61,12 +61,9 @@ COOL_NAMES = [
     "Zenith", "Halo", "Vortex", "Eclipse", "Nova", "Orbit"
 ]
 
-def next_cool_name() -> str:
+def available_names():
     used = {a["label"] for a in st.session_state.anchors}
-    for name in COOL_NAMES:
-        if name not in used:
-            return name
-    return f"Anchor{len(st.session_state.anchors)+1}"
+    return [n for n in COOL_NAMES if n not in used]
 
 st.set_page_config(page_title="Springboard Planner", layout="wide")
 
@@ -125,21 +122,26 @@ st.markdown('<div class="glass">', unsafe_allow_html=True)
 st.markdown('**Add Anchor**', unsafe_allow_html=True)
 ca1, ca2, ca3, ca4, ca5 = st.columns([1.1,1.1,1,1,1.1])
 with ca1:
-    a_label = st.text_input("Anchor name", value=next_cool_name())
+    opts = available_names()
+    if opts:
+        a_label = st.selectbox("Anchor name", opts, index=0, key="anchor_name_select")
+    else:
+        a_label = st.text_input("Anchor name", value=f"Anchor{len(st.session_state.anchors)+1}", key="anchor_name_text")
 with ca2:
-    a_date = st.date_input("Anchor date (CT)", value=(pd.Timestamp(proj_date) - pd.Timedelta(days=1)).date())
+    a_date = st.date_input("Anchor date (CT)", value=(pd.Timestamp(proj_date) - pd.Timedelta(days=1)).date(), key="anchor_date")
 with ca3:
-    a_time = st.time_input("Anchor time (CT)", value=pd.Timestamp("1900-01-01 10:30").time())
+    a_time = st.time_input("Anchor time (CT)", value=pd.Timestamp("1900-01-01 10:30").time(), key="anchor_time")
 with ca4:
-    a_price = st.number_input("Anchor price (H)", min_value=0.0, value=6721.80, step=0.1, format="%.2f")
+    a_price = st.number_input("Anchor price (H)", min_value=0.0, value=6721.80, step=0.1, format="%.2f", key="anchor_price")
 with ca5:
-    add_clicked = st.button("Add to list", use_container_width=True)
+    add_clicked = st.button("Add to list", use_container_width=True, key="add_anchor")
 
 if add_clicked:
+    label_val = (a_label if opts else (a_label.strip() or f"Anchor{len(st.session_state.anchors)+1}"))
     naive_dt = pydt.combine(a_date, a_time)
     ts = CT.localize(naive_dt)
     st.session_state.anchors.append({
-        "label": a_label.strip() or next_cool_name(),
+        "label": label_val,
         "ts": pd.Timestamp(ts),
         "price": float(a_price),
         "slope_down": CFG.slope_down,
@@ -243,4 +245,4 @@ else:
             )
 st.markdown('</div>', unsafe_allow_html=True)
 
-st.caption("Entries use descending line (−0.25/30m default). Exits use ascending line (+0.25/30m). Maintenance 16:00–17:00 excluded from block counts. Overnight anchors (e.g., 19:00 CT) are supported.")
+st.caption("Entries use descending line (−0.25/30m default). Exits use ascending line (+0.25/30m). Maintenance 16:00–17:00 excluded from block counts. Overnight anchors are supported.")
